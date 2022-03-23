@@ -340,7 +340,7 @@ class _IWDHomeState extends State<IWDHome> {
                                                     margin: const EdgeInsets.all(10),
                                                     width: 60,
                                                     height: 60,
-                                                    child: Icon(Icons.image, color: Colors.grey),
+                                                    child: const Icon(Icons.image, color: Colors.grey),
                                                     alignment: Alignment.center,
                                                     decoration: BoxDecoration(
                                                           color: Colors.white,
@@ -397,25 +397,6 @@ class _IWDHomeState extends State<IWDHome> {
                                                 );
                                             }
                                           ),
-                                          Consumer<CustomImageService>(
-                                            builder: (context, ciService, child) {
-                                              return LayoutBuilder(
-                                                builder: ((context, constraints) {
-                                                  return SizedBox(
-                                                    width: constraints.maxWidth,
-                                                    height: constraints.maxHeight,
-                                                    child: ciService.uploadedImg == null ?
-                                                    const SizedBox()
-                                                    : DraggableImageRegion(
-                                                      img: ciService.uploadedImg,
-                                                      width: constraints.maxWidth,
-                                                      height: constraints.maxHeight
-                                                    )
-                                                  );
-                                                })
-                                              );
-                                            },
-                                          ),
                                           Consumer<BackgroundEditingService>(
                                             builder: (context, beService, child) {
                                               return Consumer<TextEditingService>(
@@ -464,7 +445,28 @@ class _IWDHomeState extends State<IWDHome> {
                                                 }
                                               );
                                             },
-                                          )
+                                          ),
+                                          Consumer<CustomImageService>(
+                                            builder: (context, ciService, child) {
+                                              return LayoutBuilder(
+                                                builder: ((context, constraints) {
+                                                  return ciService.uploadedImg == null ?
+                                                    const SizedBox() :
+                                                    Container(
+                                                      color: Colors.white,
+                                                      width: constraints.maxWidth,
+                                                      height: constraints.maxHeight,
+                                                      child: DraggableImageRegion(
+                                                        img: ciService.uploadedImg,
+                                                        width: constraints.maxWidth,
+                                                        height: constraints.maxHeight
+                                                      )
+                                                    );
+                                                  }
+                                                )
+                                              );
+                                            },
+                                          ),
                                         ],
                                       )
                                     ),
@@ -655,48 +657,57 @@ class _DraggableImageRegionState extends State<DraggableImageRegion> {
                 visible: showControls,
                 child: Row(
                   children: [
-                    GestureDetector(
-                      onTap: () {
-                        var customImageService = Provider.of<CustomImageService>(context, listen: false);
-                        customImageService.resetUploadedImage();
-                      },
-                      child: ClipOval(
-                        child: Container(
-                          margin: const EdgeInsets.all(5),
-                          padding: const EdgeInsets.all(5),
-                          color: Utils.blue,
-                          child: const Icon(Icons.delete_forever, color: Colors.white)
-                        )),
+                    MouseRegion(
+                      cursor: SystemMouseCursors.click,
+                      child: GestureDetector(
+                        onTap: () {
+                          var customImageService = Provider.of<CustomImageService>(context, listen: false);
+                          customImageService.resetUploadedImage();
+                        },
+                        child: ClipOval(
+                          child: Container(
+                            margin: const EdgeInsets.all(5),
+                            padding: const EdgeInsets.all(5),
+                            color: Utils.blue,
+                            child: const Icon(Icons.delete_forever, color: Colors.white)
+                          )),
+                      ),
                     ),
-                    GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          wWidth += sizeIncrements;
-                          wHeight += sizeIncrements;
-                        });
-                      },
-                      child: ClipOval(
-                        child: Container(
-                          margin: const EdgeInsets.all(5),
-                          padding: const EdgeInsets.all(5),
-                          color: Utils.blue,
-                          child: const Icon(Icons.zoom_in, color: Colors.white)
-                        )),
+                    MouseRegion(
+                      cursor: SystemMouseCursors.click,
+                      child: GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            wWidth += sizeIncrements;
+                            wHeight += sizeIncrements;
+                          });
+                        },
+                        child: ClipOval(
+                          child: Container(
+                            margin: const EdgeInsets.all(5),
+                            padding: const EdgeInsets.all(5),
+                            color: Utils.blue,
+                            child: const Icon(Icons.zoom_in, color: Colors.white)
+                          )),
+                      ),
                     ),
-                    GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          wWidth -= sizeIncrements;
-                          wHeight -= sizeIncrements;
-                        });
-                      },
-                      child: ClipOval(
-                        child: Container(
-                          margin: const EdgeInsets.all(5),
-                          padding: const EdgeInsets.all(5),
-                          color: Utils.blue,
-                          child: const Icon(Icons.zoom_out, color: Colors.white)
-                        )),
+                    MouseRegion(
+                      cursor: SystemMouseCursors.click,
+                      child: GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            wWidth -= sizeIncrements;
+                            wHeight -= sizeIncrements;
+                          });
+                        },
+                        child: ClipOval(
+                          child: Container(
+                            margin: const EdgeInsets.all(5),
+                            padding: const EdgeInsets.all(5),
+                            color: Utils.blue,
+                            child: const Icon(Icons.zoom_out, color: Colors.white)
+                          )),
+                      ),
                     )
                   ],
                 ),
@@ -727,21 +738,30 @@ class _DraggableImageRegionState extends State<DraggableImageRegion> {
 
                 final parentPos = stackKey.globalPaintBounds;
 
-                if ((details.offset.dx < parentPos!.left || details.offset.dy < parentPos!.top)
-                || (details.offset.dx > parentPos!.left + imgWidth || details.offset.dy > parentPos!.top + imgHeight)) {
+                if ((details.offset.dx < parentPos!.left || details.offset.dy < parentPos.top)
+                || (details.offset.dx > parentPos.left + imgWidth || details.offset.dy > parentPos.top + imgHeight)) {
                   return;
                 }
 
                 setState(() {
                   
                   var newPos = Offset(
-                    details.offset.dx - parentPos!.left,
-                    details.offset.dy - parentPos!.top
+                    details.offset.dx - parentPos.left,
+                    details.offset.dy - parentPos.top
                   );
 
                   position = newPos;
                 });
               }
+            )
+          ),
+          Align(
+            alignment: Alignment.bottomRight,
+            child: Container(
+              margin: const EdgeInsets.all(20),
+              child: Image.asset('assets/imgs/wtm_logo_circle.png',
+                width: 60, height: 60, fit: BoxFit.contain
+              ),
             )
           )
         ]
