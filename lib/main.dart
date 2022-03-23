@@ -231,7 +231,9 @@ class _IWDHomeState extends State<IWDHome> {
                                         controller: textController,
                                         onChanged: (value) {
                                           var teService = Provider.of<TextEditingService>(context, listen: false);
-                                
+                                          var ciService = Provider.of<CustomImageService>(context, listen: false);
+                                          ciService.resetUploadedImage();
+
                                           teService.iwdQuote = value;
                                         },
                                       ),
@@ -251,7 +253,9 @@ class _IWDHomeState extends State<IWDHome> {
                                         controller: nameController,
                                         onChanged: (value) {
                                           var teService = Provider.of<TextEditingService>(context, listen: false);
-                                
+                                          var ciService = Provider.of<CustomImageService>(context, listen: false);
+                                          ciService.resetUploadedImage();
+                                          
                                           teService.iwdAuthor = value;
                                         },
                                       ),
