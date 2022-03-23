@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:html' as html;
 import 'dart:typed_data';
 import 'dart:ui' as ui;
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:provider/provider.dart';
@@ -17,6 +18,9 @@ void main() {
         ),
         ChangeNotifierProvider(
           create: (_) => BackgroundEditingService()
+        ),
+        ChangeNotifierProvider(
+          create: (_) => CustomImageService()
         )
       ],
       child: const IWDApp()
@@ -271,41 +275,96 @@ class _IWDHomeState extends State<IWDHome> {
                                 child: Consumer<BackgroundEditingService>(
                                   builder: (context, bgService, child) {
                                     return Column(
-                                      children: List.generate(bgService.templateList.length, 
-                                      (index) {
-                                              
-                                        var tmpl = bgService.templateList[index];
-                                              
-                                        return GestureDetector(
-                                          onTap: () {
-                                            var bgService = Provider.of<BackgroundEditingService>(context, listen: false);
-                                            bgService.template = tmpl;
-                                          },
-                                          child: Container(
-                                            margin: const EdgeInsets.all(10),
-                                            width: 60,
-                                            height: 60,
-                                            decoration: BoxDecoration(
-                                              borderRadius: BorderRadius.circular(15),
-                                              boxShadow: [
-                                                BoxShadow(
-                                                  color: Colors.black.withOpacity(0.2),
-                                                  blurRadius: 15,
-                                                  offset: Offset.zero
-                                                )
-                                              ],
-                                              border: Border.all(
-                                                width: 5,
-                                                color: tmpl.isSelected! ? Utils.purple : Colors.transparent,
+                                      children: [
+                                        ...List.generate(bgService.templateList.length, 
+                                        (index) {
+                                                
+                                          var tmpl = bgService.templateList[index];
+                                                
+                                          return MouseRegion(
+                                            cursor: SystemMouseCursors.click,
+                                            child: GestureDetector(
+                                              onTap: () {
+                                                var ciService = Provider.of<CustomImageService>(context, listen: false);
+                                                ciService.resetUploadedImage();
+
+                                                var bgService = Provider.of<BackgroundEditingService>(context, listen: false);
+                                                bgService.template = tmpl;
+                                              },
+                                              child: Container(
+                                                margin: const EdgeInsets.all(10),
+                                                width: 60,
+                                                height: 60,
+                                                decoration: BoxDecoration(
+                                                  borderRadius: BorderRadius.circular(15),
+                                                  boxShadow: [
+                                                    BoxShadow(
+                                                      color: Colors.black.withOpacity(0.2),
+                                                      blurRadius: 15,
+                                                      offset: Offset.zero
+                                                    )
+                                                  ],
+                                                  border: Border.all(
+                                                    width: 5,
+                                                    color: tmpl.isSelected! ? Utils.purple : Colors.transparent,
+                                                  ),
+                                                  image: DecorationImage(
+                                                    image: AssetImage('assets/imgs/${tmpl.thumbName!}.png'),
+                                                    fit: BoxFit.cover
+                                                  )
+                                                ),
                                               ),
-                                              image: DecorationImage(
-                                                image: AssetImage('assets/imgs/${tmpl.thumbName!}.png'),
-                                                fit: BoxFit.cover
-                                              )
                                             ),
-                                          ),
-                                        );
-                                      }),
+                                          );
+                                        }),
+                                        MouseRegion(
+                                          cursor: SystemMouseCursors.click,
+                                          child: GestureDetector(
+                                              onTap: () async {
+                                                var picked = await FilePicker.platform.pickFiles(
+                                                  type: FileType.custom,
+                                                  allowedExtensions: ['jpg', 'png']
+                                                );
+
+                                                if (picked != null) {
+                                                  Uint8List fileBytes = picked.files.first.bytes!;
+
+                                                  var customImageService = Provider.of<CustomImageService>(context, listen: false);
+                                                  customImageService.setUploadedImage(fileBytes);
+                                                }
+                                              },
+                                              child: Column(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Container(
+                                                    margin: const EdgeInsets.all(10),
+                                                    width: 60,
+                                                    height: 60,
+                                                    child: Icon(Icons.image, color: Colors.grey),
+                                                    alignment: Alignment.center,
+                                                    decoration: BoxDecoration(
+                                                          color: Colors.white,
+                                                          borderRadius: BorderRadius.circular(15),
+                                                          boxShadow: [
+                                                            BoxShadow(
+                                                              color: Colors.black.withOpacity(0.2),
+                                                              blurRadius: 15,
+                                                              offset: Offset.zero
+                                                            )
+                                                          ],
+                                                          border: Border.all(
+                                                            width: 5,
+                                                            color: Colors.grey,
+                                                      ),
+                                                      
+                                                    ),
+                                                  ),
+                                                  const Text('Add Image', textAlign: TextAlign.center)
+                                                ],
+                                              ),
+                                            ),
+                                        )
+                                      ],
                                     );
                                   },
                                 ),
@@ -337,6 +396,25 @@ class _IWDHomeState extends State<IWDHome> {
                                                   ),
                                                 );
                                             }
+                                          ),
+                                          Consumer<CustomImageService>(
+                                            builder: (context, ciService, child) {
+                                              return LayoutBuilder(
+                                                builder: ((context, constraints) {
+                                                  return SizedBox(
+                                                    width: constraints.maxWidth,
+                                                    height: constraints.maxHeight,
+                                                    child: ciService.uploadedImg == null ?
+                                                    const SizedBox()
+                                                    : DraggableImageRegion(
+                                                      img: ciService.uploadedImg,
+                                                      width: constraints.maxWidth,
+                                                      height: constraints.maxHeight
+                                                    )
+                                                  );
+                                                })
+                                              );
+                                            },
                                           ),
                                           Consumer<BackgroundEditingService>(
                                             builder: (context, beService, child) {
@@ -417,7 +495,7 @@ class _IWDHomeState extends State<IWDHome> {
                                   )
                                 ],
                               ),
-                              Expanded(child: const QuotesList())
+                              const Expanded(child: QuotesList())
                             ],
                           ),
                         ),
@@ -509,6 +587,181 @@ class BackgroundEditingService extends ChangeNotifier {
     for(var t in templateList) {
       t.isSelected = tmp == t;
     }
+  }
+}
+
+class DraggableImageRegion extends StatefulWidget {
+
+  final double? width;
+  final double? height;
+  final Uint8List? img;
+
+  const DraggableImageRegion({ this.width, this.height, this.img });
+
+  @override
+  State<DraggableImageRegion> createState() => _DraggableImageRegionState();
+}
+
+class _DraggableImageRegionState extends State<DraggableImageRegion> {
+
+  Offset? position;
+  final GlobalKey stackKey = GlobalKey();
+  double scale = 1.0;
+  bool showControls = false;
+  double wWidth = 0;
+  double wHeight = 0;
+  double sizeIncrements = 20;
+
+  @override
+  void initState() {
+    super.initState();
+
+    wWidth = widget.width!;
+    wHeight = widget.height!;
+
+    position = Offset(20.0, wHeight - (wHeight / 2) - 20);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+
+    var imgWidth = wWidth / 2;
+    var imgHeight = wHeight / 2;
+
+    var img = Image.memory(widget.img!,
+      width: imgWidth,
+      height: imgHeight,
+      fit: BoxFit.contain
+    );
+
+    var sizableImg = MouseRegion(
+      onEnter: (event) {
+        setState(() {
+          showControls = true;
+        });
+      },
+      onExit: (event) {
+        setState(() {
+          showControls = false;
+        });
+      },
+      child: SizedBox(
+        child: Stack(
+          children: [
+            img,
+            Align(
+              alignment: Alignment.bottomLeft,
+              child: Visibility(
+                visible: showControls,
+                child: Row(
+                  children: [
+                    GestureDetector(
+                      onTap: () {
+                        var customImageService = Provider.of<CustomImageService>(context, listen: false);
+                        customImageService.resetUploadedImage();
+                      },
+                      child: ClipOval(
+                        child: Container(
+                          margin: const EdgeInsets.all(5),
+                          padding: const EdgeInsets.all(5),
+                          color: Utils.blue,
+                          child: const Icon(Icons.delete_forever, color: Colors.white)
+                        )),
+                    ),
+                    GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          wWidth += sizeIncrements;
+                          wHeight += sizeIncrements;
+                        });
+                      },
+                      child: ClipOval(
+                        child: Container(
+                          margin: const EdgeInsets.all(5),
+                          padding: const EdgeInsets.all(5),
+                          color: Utils.blue,
+                          child: const Icon(Icons.zoom_in, color: Colors.white)
+                        )),
+                    ),
+                    GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          wWidth -= sizeIncrements;
+                          wHeight -= sizeIncrements;
+                        });
+                      },
+                      child: ClipOval(
+                        child: Container(
+                          margin: const EdgeInsets.all(5),
+                          padding: const EdgeInsets.all(5),
+                          color: Utils.blue,
+                          child: const Icon(Icons.zoom_out, color: Colors.white)
+                        )),
+                    )
+                  ],
+                ),
+              )
+            )
+          ]
+        ),
+      )
+    );
+
+    return SizedBox(
+      width: wWidth,
+      height: wHeight,
+      child: Stack(
+        key: stackKey,
+        fit: StackFit.expand,
+        children: [
+          Positioned(
+            top: position!.dy, 
+            left: position!.dx,
+            child: Draggable(
+              feedback: Opacity(
+                opacity: 0.5,
+                child: sizableImg,
+              ),
+              child: sizableImg,
+              onDragEnd: (DraggableDetails details) {
+
+                final parentPos = stackKey.globalPaintBounds;
+
+                if ((details.offset.dx < parentPos!.left || details.offset.dy < parentPos!.top)
+                || (details.offset.dx > parentPos!.left + imgWidth || details.offset.dy > parentPos!.top + imgHeight)) {
+                  return;
+                }
+
+                setState(() {
+                  
+                  var newPos = Offset(
+                    details.offset.dx - parentPos!.left,
+                    details.offset.dy - parentPos!.top
+                  );
+
+                  position = newPos;
+                });
+              }
+            )
+          )
+        ]
+      ),
+    );
+  }
+}
+
+class CustomImageService extends ChangeNotifier {
+
+  Uint8List? uploadedImg;
+
+  void setUploadedImage(Uint8List img) {
+    uploadedImg = img;
+    notifyListeners();
+  }
+
+  void resetUploadedImage() {
+    uploadedImg = null;
+    notifyListeners();
   }
 }
 
@@ -607,5 +860,20 @@ class QuotesListState extends State<QuotesList> {
         );
       },
     );
+  }
+}
+
+// A useful extention for getting absolute coordinates of a widget 
+// (found somewhere in SO)
+extension GlobalKeyExtension on GlobalKey {
+  Rect? get globalPaintBounds {
+    final renderObject = currentContext?.findRenderObject();
+    var translation = renderObject?.getTransformTo(null).getTranslation();
+    if (translation != null && renderObject?.paintBounds != null) {
+      return renderObject!.paintBounds
+          .shift(Offset(translation.x, translation.y));
+    } else {
+      return null;
+    }
   }
 }
